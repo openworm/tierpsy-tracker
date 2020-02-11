@@ -30,7 +30,7 @@ valid_time_windows_connector = ':'
 valid_time_windows_separator = ','
 time_windows_format_explain = 'Each time window must be defined by the start time and the end time connected by \'-\' (start_time-end_time). Different windows must be separated by {}. A sequence of equally sized windows can be defined with the format start_time:end_time:step.'.format(valid_time_windows_separator)
 
-feat_df_id_cols = ['file_id','well_name']
+feat_df_id_cols = ['file_id', 'well_name', 'is_good_well']
 
 def check_in_list(x, list_of_x, x_name):
     if not x in list_of_x:
@@ -151,6 +151,11 @@ def select_features(win_summaries,keywords_in,keywords_ex,selected_feat):
         if keywords_ex is not None:
             filter_col = [x for x in win_summaries.columns if any(key in x for key in keywords_ex)]
             win_summaries = win_summaries[win_summaries.columns.drop(filter_col)]
+        if not any([selected_feat, keywords_in, keywords_ex]):
+            # only change order of columns
+            not_id_cols = win_summaries.columns.difference(id_cols).tolist()
+            win_summaries = win_summaries[id_cols + not_id_cols]
+
     return win_summaries
 
 
@@ -176,9 +181,30 @@ def shorten_feature_names(feat_summary):
 
     return feat_summary
 
+def abs_features_only(feat_summary):
+    """ IB: drops the absolute features
+    Input:
+    feat_summary = dataframe of features
+
+    Output:
+    feat_summary = dataframe with all d/v signed features removed
+    """
+
+    absft = [ft for ft in feat_summary.columns if '_abs' in ft]
+    ventr = [ft.replace('_abs', '') for ft in absft]
+
+    feats_to_drop = list(set(ventr).intersection(feat_summary.columns))
+
+    if len(feats_to_drop)>0:
+        feat_summary.drop(columns=feats_to_drop, inplace=True)
+        return feat_summary
+
+    else:
+        return feat_summary
+
 
 def calculate_summaries(root_dir, feature_type, summary_type, is_manual_index, time_windows, time_units,
-                        select_feat, keywords_include, keywords_exclude, abbreviate_features, _is_debug = False, **fold_args):
+                        select_feat, keywords_include, keywords_exclude, abbreviate_features, dorsal_side_known, _is_debug = False, **fold_args):
     """
     Gets input from the GUI, calls the function that chooses the type of summary
     and runs the summary calculation for each file in the root_dir.
@@ -253,6 +279,10 @@ def calculate_summaries(root_dir, feature_type, summary_type, is_manual_index, t
     #IB : add in the option to abbreviate features
         if abbreviate_features:
             all_summaries[iwin] = shorten_feature_names(all_summaries[iwin])
+    #IB : add in removal of signed features
+
+        if not dorsal_side_known:
+            all_summaries[iwin] = abs_features_only(all_summaries[iwin])
 
     # EM : Save results
         if select_feat != 'all':
@@ -288,37 +318,48 @@ def calculate_summaries(root_dir, feature_type, summary_type, is_manual_index, t
 
 if __name__ == '__main__':
 
-    root_dir = '/Users/em812/Documents/OneDrive - Imperial College London/Eleni/Tierpsy_GUI/test_results_2'
-    is_manual_index = False
-#    feature_type = 'tierpsy'
-    feature_type = 'openworm'
-    summary_type = 'plate_augmented'
-#    summary_type = 'plate'
-    #summary_type = 'trajectory'
-
-# Luigi
-##    root_dir = '/Users/em812/Documents/OneDrive - Imperial College London/Eleni/Tierpsy_GUI/test_results_2'
-#    root_dir = '/Users/lferiani/Desktop/Data_FOVsplitter/evgeny/Results/20190808_subset'
+#    root_dir = '/Users/ibarlow/Desktop/test_summarizer'
 #    is_manual_index = False
 #    feature_type = 'tierpsy'
-#    #feature_type = 'openworm'
-#    #summary_type = 'plate_augmented'
+#    # feature_type = 'openworm'
+#    summary_type = 'plate_augmented'
 ##    summary_type = 'plate'
-#    summary_type = 'trajectory'
+#    #summary_type = 'trajectory'
+#    abbreviate_features = True
+#    dorsal_sign_known = False
+
+#    root_dir = '/Users/em812/Documents/OneDrive - Imperial College London/Eleni/Tierpsy_GUI/test_results_2'
+#    is_manual_index = False
+##    feature_type = 'tierpsy'
+#    feature_type = 'openworm'
+#    summary_type = 'plate_augmented'
+##    summary_type = 'plate'
+#    #summary_type = 'trajectory'
+
+# Luigi
+    root_dir = '/Users/lferiani/Desktop/SyngentaTestVideos'
+    is_manual_index = False
+    feature_type = 'tierpsy'
+    #feature_type = 'openworm'
+    #summary_type = 'plate_augmented'
+    summary_type = 'plate'
+    #summary_type = 'trajectory'
+    abbreviate_features = False
+    dorsal_sign_known = False
 
     fold_args = dict(
-                 n_folds = 2,
+                 n_folds = 5,
                  frac_worms_to_keep = 0.8,
                  time_sample_seconds = 10*60
                  )
 
-    time_windows = '0-end,100000-101000' '0:end:1000' #'0:end' # time_windows = '0:60,480:540'
+    time_windows = '0:end'#'-end,100000-101000' '0:end:1000' #'0:end' # time_windows = '0:60,480:540'
     time_units = 'frame numbers'
-    select_feat = 'all' #'tierpsy_2k'
+    select_feat = 'all' #'all' # #'tierpsy_256'# #'tierpsy_2k'
     keywords_include = ''
     keywords_exclude = '' #'curvature,velocity,norm,abs'
 
-    df_files, all_summaries = calculate_summaries(root_dir, feature_type, summary_type, is_manual_index, time_windows, time_units, select_feat, keywords_include, keywords_exclude, **fold_args)
+    df_files, all_summaries = calculate_summaries(root_dir, feature_type, summary_type, is_manual_index, time_windows, time_units, select_feat, keywords_include, keywords_exclude, abbreviate_features, dorsal_sign_known, **fold_args)
 
     # Luigi
 #    df_files, all_summaries = calculate_summaries(root_dir, feature_type,

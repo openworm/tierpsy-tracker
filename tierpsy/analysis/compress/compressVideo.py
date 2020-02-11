@@ -27,7 +27,8 @@ def getROIMask(
         thresh_C,
         dilation_size,
         keep_border_data,
-        is_light_background):
+        is_light_background,
+        wells_mask=None):
     '''
     Calculate a binary mask to mark areas where it is possible to find worms.
     Objects with less than min_area or more than max_area pixels are rejected.
@@ -37,6 +38,8 @@ def getROIMask(
         > thresh_block_size -- block size used by openCV adaptiveThreshold
         > dilation_size -- size of the structure element to dilate the mask
         > keep_border_data -- (bool) if false it will reject any blob that touches the image border
+        > is_light_background -- (bool) true if bright field, false if fluorescence
+        > wells_mask -- (bool 2D) mask that covers (with False) the edges of wells in a MW plate
 
     '''
     # Objects that touch the limit of the image are removed. I use -2 because
@@ -79,16 +82,22 @@ def getROIMask(
     contours, hierarchy = cv2.findContours(
         mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
 
-
     # find good contours: between max_area and min_area, and do not touch the
     # image border
     goodIndex = []
     for ii, contour in enumerate(contours):
         if not keep_border_data:
-            # eliminate blobs that touch a border
-            keep = not np.any(contour == 1) and \
-                not np.any(contour[:, :, 0] ==  IM_LIMY)\
-                and not np.any(contour[:, :, 1] == IM_LIMX)
+            if wells_mask is None:
+                # eliminate blobs that touch a border
+                # TODO: double check this next line. I suspect contour is in
+                # x,y and not row columns
+                keep = not np.any(contour == 1) and \
+                    not np.any(contour[:, :, 0] ==  IM_LIMY)\
+                    and not np.any(contour[:, :, 1] == IM_LIMX)
+            else:
+                # keep if no pixel of contour is in the 0 part of the mask
+                keep = not np.any(wells_mask[contour[:, :, 1],
+                                             contour[:, :, 0]] == 0)
         else:
             keep = True
 
@@ -284,16 +293,15 @@ def compressVideo(video_file, masked_image_file, mask_param,  expected_fps=25,
     image_prev = np.zeros([])
 
     # Initialise FOV splitting if needed
+    if is_bgnd_subtraction:
+        img_fov = bgnd_subtractor.bgnd.astype(np.uint8)
+    else:
+        ret, img_fov = vid.read()
+        # close and reopen the video, to restart from the beginning
+        vid.release()
+        vid = selectVideoReader(video_file)
+
     if is_fov_tosplit:
-        # masked video does not exist yet so have to initialise from data
-        # use either background or first frame
-        if is_bgnd_subtraction:
-            img_fov = bgnd_subtractor.bgnd.astype(np.uint8)
-        else:
-            ret, img_fov = vid.read()
-            # close and reopen the video, to restart from the beginning
-            vid.release()
-            vid = selectVideoReader(video_file);
         # TODO: change class creator so it only needs the video name? by using
         # Tierpsy's functions such as selectVideoReader it can then read the first image by itself
 
@@ -303,6 +311,9 @@ def compressVideo(video_file, masked_image_file, mask_param,  expected_fps=25,
                                             camera_serial=camera_serial,
                                             px2um=microns_per_pixel,
                                             **fovsplitter_param)
+        wells_mask = fovsplitter.wells_mask
+    else:
+        wells_mask = None
 
 
 
@@ -405,7 +416,7 @@ def compressVideo(video_file, masked_image_file, mask_param,  expected_fps=25,
                 #calculate the max/min in the of the buffer
                 img_reduce = reduceBuffer(Ibuff_b, mask_param['is_light_background'])
 
-                mask = getROIMask(img_reduce, **mask_param)
+                mask = getROIMask(img_reduce, wells_mask=wells_mask, **mask_param)
 
                 Ibuff *= mask
 
