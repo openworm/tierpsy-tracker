@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Mar  5 14:55:41 2019
-
 @author: lferiani
 """
 
@@ -198,13 +197,14 @@ class FOVMultiWellsSplitter(object):
         masked_image_file = filename.replace('Results','MaskedVideos')
         masked_image_file = masked_image_file.replace('_featuresN.hdf5',
                                                       '.hdf5')
-        with tables.File(masked_image_file, 'r') as fid:
-            if '/bgnd' in fid:
-                self.img = fid.get_node('/bgnd')[0]
-            else:
-                # maybe bgnd was not in the masked video?
-                # for speed, let's just get the first full frame
-                self.img = fid.get_node('/full_data')[0]
+        if Path(masked_image_file).exists():
+            with tables.File(masked_image_file, 'r') as fid:
+                if '/bgnd' in fid:
+                    self.img = fid.get_node('/bgnd')[0]
+                else:
+                    # maybe bgnd was not in the masked video?
+                    # for speed, let's just get the first full frame
+                    self.img = fid.get_node('/full_data')[0]
 
         # initialise the dataframe
         self.wells = pd.DataFrame(columns = WELLS_ATTRIBUTES)
@@ -221,21 +221,22 @@ class FOVMultiWellsSplitter(object):
 
 
 
-    def write_fov_wells_to_file(self, filename):
+    def write_fov_wells_to_file(self, filename, table_name='fov_wells'):
+        table_path = '/'+table_name
         with tables.File(filename, 'r+') as fid:
-            if '/fov_wells' in fid:
-                fid.remove_node('/fov_wells')
+            if table_path in fid:
+                fid.remove_node(table_path)
             fid.create_table('/',
-                             'fov_wells',
+                             table_name,
                              obj = self.get_wells_data().to_records(index=False),
                              filters = TABLE_FILTERS)
-            fid.get_node('/fov_wells')._v_attrs['img_shape']     = self.img_shape
-            fid.get_node('/fov_wells')._v_attrs['camera_serial'] = self.camera_serial
-            fid.get_node('/fov_wells')._v_attrs['px2um']         = self.px2um
-            fid.get_node('/fov_wells')._v_attrs['channel']       = self.channel
-            fid.get_node('/fov_wells')._v_attrs['n_wells']       = self.n_wells
-            fid.get_node('/fov_wells')._v_attrs['whichsideup']   = self.whichsideup
-            fid.get_node('/fov_wells')._v_attrs['well_shape']    = self.well_shape
+            fid.get_node(table_path)._v_attrs['img_shape']     = self.img_shape
+            fid.get_node(table_path)._v_attrs['camera_serial'] = self.camera_serial
+            fid.get_node(table_path)._v_attrs['px2um']         = self.px2um
+            fid.get_node(table_path)._v_attrs['channel']       = self.channel
+            fid.get_node(table_path)._v_attrs['n_wells']       = self.n_wells
+            fid.get_node(table_path)._v_attrs['whichsideup']   = self.whichsideup
+            fid.get_node(table_path)._v_attrs['well_shape']    = self.well_shape
 
 
 

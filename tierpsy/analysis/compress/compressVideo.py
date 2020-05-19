@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Apr  2 13:19:58 2015
-
 @author: ajaver
 """
 import os
@@ -40,7 +39,6 @@ def getROIMask(
         > keep_border_data -- (bool) if false it will reject any blob that touches the image border
         > is_light_background -- (bool) true if bright field, false if fluorescence
         > wells_mask -- (bool 2D) mask that covers (with False) the edges of wells in a MW plate
-
     '''
     # Objects that touch the limit of the image are removed. I use -2 because
     # openCV findCountours remove the border pixels
@@ -343,7 +341,9 @@ def compressVideo(video_file, masked_image_file, mask_param,  expected_fps=25,
         if is_bgnd_subtraction:
             bg_dataset = createImgGroup(mask_fid, "/bgnd", 1, vid.height, vid.width, is_expandable=False)
             # because we only save the one background:
-            bg_dataset._v_attrs['save_interval'] = vid.frame_max-vid.first_frame + 1
+            bg_dataset._v_attrs['save_interval'] = len(vid)
+            # except that if reading with ffmpeg, this could be not accurate.
+            # call it again after reading the whole video!
             bg_dataset[0,:,:] = img_fov
 
         if vid.dtype != np.uint8:
@@ -436,6 +436,14 @@ def compressVideo(video_file, masked_image_file, mask_param,  expected_fps=25,
             # finish process
             if ret == 0:
                 break
+
+        # now that the whole video is read, we definitely have a better estimate
+        # for its number of frames. so set the save_interval again
+        if is_bgnd_subtraction:
+            # bg_dataset._v_attrs['save_interval'] = len(vid)
+            # so that didn't work. Either I have an off by one,
+            # or if the video is corrupted it's just safer to do:
+            bg_dataset._v_attrs['save_interval'] = mask_dataset.shape[0]
 
         # close the video
         vid.release()
