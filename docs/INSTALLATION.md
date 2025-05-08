@@ -24,11 +24,6 @@ or if you plan to contribute to Tierpsy Tracker's development, then you should
 [install Tierpsy Tracker from source](INSTALLATION_SOURCE.md).
 
 
-## 3. Installing from conda [deprecated]
-
-You can [install a legacy version of Tierpsy Tracker using the package manager conda](INSTALLATION_CONDA.md), although we do not recommend this as an installation route.
-
-
 
 # Tests
 After installing you can run the testing scripts using the command `tierpsy_tests` in the terminal/Anaconda prompt/Docker container. Type `tierpsy_tests -h` for help. Although the script supports running multiple tests consecutively, I would recommend to run one test at the time since there is not currently a way to summarise the results of several tests.
