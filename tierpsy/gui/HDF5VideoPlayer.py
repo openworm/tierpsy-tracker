@@ -351,8 +351,24 @@ class HDF5VideoPlayerGUI(SimplePlayer):
 
     def readCurrentFrame(self):
         if self.isimgstore:
-            _, self.frame_img = self.imgstore.read_frame(self.frame_number)
-            assert _ == 1, 'imgstore frame read failed'
+            try:
+                status, self.frame_img = self.imgstore.read_frame(self.frame_number)
+                if status != 1:
+                    # We've likely reached the end of the video or encountered an issue
+                    print(f"Frame read status: {status} - possibly reached end of video")
+                    # Adjust frame number to the last valid frame
+                    self.frame_number = max(0, self.frame_number - 1)
+                    # Try to read the last valid frame
+                    status, self.frame_img = self.imgstore.read_frame(self.frame_number)
+                    if status != 1:
+                        # If still failing, notify and return
+                        print("Could not read valid frame")
+                        return
+            except Exception as e:
+                print(f"Error reading frame: {e}")
+                # Adjust frame number to avoid getting stuck
+                self.frame_number = max(0, self.frame_number - 1)
+                return
         else:
             if self.image_group is None:
                 self.frame_qimg = None
