@@ -425,7 +425,9 @@ class FOVMultiWellsSplitter(object):
         self.wells['r'] = _circles[:, 2].astype(int)
         # take the decision to use the median radius.
         # no reason for wells to have different radii
-        self.wells['r'] = self.wells['r'].median().astype(int)
+        # made the following change due to the fact that on recent versions of pandas, median() only returns a float and has no astype() attribute 
+        # self.wells['r'] = self.wells['r'].median().astype(int)
+        self.wells['r'] = int(self.wells['r'].median())
         return
 
 
