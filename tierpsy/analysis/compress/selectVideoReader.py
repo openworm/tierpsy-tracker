@@ -17,6 +17,7 @@ def selectVideoReader(video_file):
     isMJPGvideo = video_file.endswith('.mjpg')
     isDATfiles = video_file.endswith('spool.dat')
     isLoopBio = video_file.endswith('.yaml')
+    isAVIvideo = video_file.endswith('.avi')
 
     isImages = any(video_file.endswith(x) for x in IMG_EXT)
 
@@ -34,6 +35,9 @@ def selectVideoReader(video_file):
     elif isLoopBio:
         # use opencv VideoCapture
         vid = readLoopBio(video_file)
+    elif isAVIvideo:
+        # use ffmpeg to read avi files
+        vid = ReadVideoFFMPEG(video_file)
     elif isImages:
         # I am assuming I am recieving the first file
         # of a directory full of images.
