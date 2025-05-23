@@ -800,16 +800,22 @@ class FOVMultiWellsSplitter(object):
         # treat the x array as column, and the *_min and *_max as rows
         # these are all matrices len(x)-by-len(self.wells)
         # none creates new axis
+        # making sure all are numpy arrays
         if np.isscalar(x):
             x = np.array([x])
             y = np.array([y])
 
+        x_min = self.wells['x_min'].to_numpy()
+        x_max = self.wells['x_max'].to_numpy()
+        y_min = self.wells['y_min'].to_numpy()
+        y_max = self.wells['y_max'].to_numpy()
+
         within_x = np.logical_and(
-                (x[:,None] - self.wells['x_min'][None,:]) >= 0,
-                (x[:,None] - self.wells['x_max'][None,:]) <= 0)
+            (x[:, None] - x_min[None, :]) >= 0,
+            (x[:, None] - x_max[None, :]) <= 0)
         within_y = np.logical_and(
-                (y[:,None] - self.wells['y_min'][None,:]) >= 0,
-                (y[:,None] - self.wells['y_max'][None,:]) <= 0)
+            (y[:, None] - y_min[None, :]) >= 0,
+            (y[:, None] - y_max[None, :]) <= 0)
         within_well = np.logical_and(within_x, within_y)
         # in each row of within_well, the column index of the "true" value is the well index
 
