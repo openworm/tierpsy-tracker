@@ -800,6 +800,8 @@ class FOVMultiWellsSplitter(object):
         # treat the x array as column, and the *_min and *_max as rows
         # these are all matrices len(x)-by-len(self.wells)
         # none creates new axis
+        x = np.asarray(x)
+        y = np.asarray(y)
         # making sure all are numpy arrays
         if np.isscalar(x):
             x = np.array([x])
