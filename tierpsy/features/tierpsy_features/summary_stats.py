@@ -164,12 +164,12 @@ def get_df_quantiles(df,
     for q in q_vals:
         q_dat = feat_mean.loc[q]
         q_str = '_{}th'.format(int(round(q*100)))
-        for feat, val in q_dat.iteritems():
+        for feat, val in q_dat.items():
             dat.append((val, feat+q_str))
 
 
     IQR = feat_mean.loc[0.75] - feat_mean.loc[0.25]
-    dat += [(val, feat + '_IQR') for feat, val in IQR.iteritems()]
+    dat += [(val, feat + '_IQR') for feat, val in IQR.items()]
 
     feat_mean_s = pd.Series(*list(zip(*dat)))
     return feat_mean_s
