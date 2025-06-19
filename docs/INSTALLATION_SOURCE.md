@@ -159,9 +159,10 @@ tierpsy_gui
 ```bash
 git clone https://github.com/Tierpsy/tierpsy-tracker
 cd tierpsy-tracker
-conda create -n tierpsy #[optional]
-conda activate tierpsy #[optional]
-conda install --file requirements.txt
+conda create -n tierpsy python=3.8 
+conda activate tierpsy 
+conda install --file requirements-ubuntu.txt
+pip install imgstore
 pip install -e .
 tierpsy_gui
 ```
