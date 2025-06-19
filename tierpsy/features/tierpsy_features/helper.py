@@ -28,7 +28,7 @@ def load_eigen_projections(n_projections = 7):
     return eigen_worms
 
 
-@numba.jit
+@numba.jit(nopython=True)
 def fillfnan(arr):
     '''
     fill foward nan values (iterate using the last valid nan)
@@ -40,7 +40,7 @@ def fillfnan(arr):
             out[idx] = out[idx - 1]
     return out
 
-@numba.jit
+@numba.jit(nopython=True)
 def fillbnan(arr):
     '''
     fill foward nan values (iterate using the last valid nan)
